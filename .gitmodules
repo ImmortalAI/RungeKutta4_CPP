@@ -1,0 +1,4 @@
+[submodule "external/exprtk"]
+	path = external/exprtk
+	url = https://github.com/ArashPartow/exprtk
+	branch = cmake
