@@ -3,8 +3,6 @@
 
 #include <QMainWindow>
 #include <QGraphicsScene>
-#include "exprtk.hpp"
-#include "rk4.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
