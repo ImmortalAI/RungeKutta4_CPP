@@ -30,9 +30,8 @@ void GraphWindow::plotGraph(const QVector<double>& x_vals, const QVector<double>
 
     double min_x = *std::min_element(x_data.begin(), x_data.end());
     double max_x = *std::max_element(x_data.begin(), x_data.end());
-    double min_y = *std::min_element(y_data.begin(), y_data.end());
-    double max_y = *std::max_element(y_data.begin(), y_data.end());
-    if (max_y - min_y == 0) max_y += 1;
+    double min_y = *std::min_element(y_data.begin(), y_data.end()) - 1.;
+    double max_y = *std::max_element(y_data.begin(), y_data.end()) + 1.;
 
     ui->graph->xAxis->setRange(min_x, max_x);
     ui->graph->yAxis->setRange(min_y, min_y + (max_x - min_x) < max_y ? min_y + (max_x - min_x) : max_y);
