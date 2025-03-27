@@ -12,15 +12,12 @@
 
 #include "exprtk.hpp"
 #include "rk4.hpp"
+#include "graphwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
 
     ui->setupUi(this);
-
-    
-    // scene = new QGraphicsScene(this);
-    // ui->functionGraph->setScene(scene);
 
     connect(ui->evalButton, &QPushButton::clicked, this, &MainWindow::onCalculateClicked);
 }
@@ -30,8 +27,6 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::onCalculateClicked() {
-    // scene->clear();
-
     std::string expression_str = ui->diffInput->text().toStdString();
     double x0 = ui->initXInput->text().toDouble();
 
@@ -49,15 +44,22 @@ void MainWindow::onCalculateClicked() {
 
     RungeKutta4<double> rk4(expression_str, x0, y0, h);
 
-    // QPen pen(Qt::blue);
     double prev_x = x0;
     auto prev_y = y0;
 
+    QVector<double> x_vals, y_vals;
+    x_vals.push_back(x0);
+    y_vals.push_back(y0.at(0));
+
     while(rk4.getX() <= x_max){
         double next_y = rk4.makeStep();
-        // scene->addLine(prev_x * 20, -prev_y * 20, rk4.getX() * 20, -next_y * 20, pen);
-        std::cout << prev_x << " " << next_y << std::endl;
         prev_x = rk4.getX();
         prev_y = rk4.getY();
+        x_vals.push_back(prev_x);
+        y_vals.push_back(next_y);
     }
+
+    GraphWindow *window = new GraphWindow(this);
+    window->plotGraph(x_vals, y_vals);
+    window->exec();
 }
