@@ -4,6 +4,7 @@
 #include "exprtk.hpp"
 #include <string>
 #include <vector>
+#include <memory>
 #include <type_traits>
 
 template <typename T, typename Enable = std::enable_if_t<std::is_floating_point_v<T>>>
@@ -14,7 +15,8 @@ private:
     exprtk::expression<T> expression;
     std::vector<T> k1, k2, k3, k4;
     T x, step, expr_x;
-    std::vector<T> y_i, expr_y_i;
+    std::vector<T> y_i;
+    std::unique_ptr<double[]> expr_y_i;
 
 public:
     RungeKutta4(const std::string& expression, const T& x0, const std::vector<T>& y0_i, const T& step);
@@ -38,14 +40,15 @@ RungeKutta4<T, Enable>::RungeKutta4(const std::string& expression, const T& x0, 
     // Initialize exprtk objects
     this->symbol_table = exprtk::symbol_table<T>();
     this->expression = exprtk::expression<T>();
+    this->expr_y_i = std::make_unique<double[]>(y0_i.size());
     exprtk::parser<T> parser;
 
     // Add variables to symbol table
     this->symbol_table.add_variable("x", this->expr_x);
     this->y_i = std::vector<T>(y0_i);
     for(uint i = 0; i < this->y_i.size(); i++){
-        this->expr_y_i.push_back(y0_i.at(i));
-        this->symbol_table.add_variable(std::string("y") + std::to_string(i), expr_y_i.at(i));
+        this->expr_y_i[i] = y_i[i];
+        this->symbol_table.add_variable(std::string("y") + std::to_string(i), expr_y_i[i]);
     }
 
     // Register variables and compile expression
@@ -68,49 +71,49 @@ template <typename T, typename Enable>
 T RungeKutta4<T, Enable>::makeStep(){
     std::vector<T> newY_i;
     for(uint i = 0; i < this->y_i.size() - 1; i++){
-        T iter_k1 = this->y_i.at(i+1);
-        T iter_k2 = this->y_i.at(i+1) + this->step / 2 * iter_k1;
-        T iter_k3 = this->y_i.at(i+1) + this->step / 2 * iter_k2;
-        T iter_k4 = this->y_i.at(i+1) + this->step * iter_k3;
-        newY_i.push_back(this->y_i.at(i) + this->step / 6 * (iter_k1 + 2 * iter_k2 + 2 * iter_k3 + iter_k4));
+        T iter_k1 = this->y_i[i+1];
+        T iter_k2 = this->y_i[i+1] + this->step / 2 * iter_k1;
+        T iter_k3 = this->y_i[i+1] + this->step / 2 * iter_k2;
+        T iter_k4 = this->y_i[i+1] + this->step * iter_k3;
+        newY_i.push_back(this->y_i[i] + this->step / 6 * (iter_k1 + 2 * iter_k2 + 2 * iter_k3 + iter_k4));
     }
     
     // Calculate k1
     this->expr_x = this->x;
-    for(uint i = 0; i < this->expr_y_i.size(); i++){
-        this->expr_y_i.at(i) = this->y_i.at(i);
+    for(uint i = 0; i < this->y_i.size(); i++){
+        this->expr_y_i[i] = this->y_i[i];
     }
     T k1 = this->expression.value();
 
     // Calculate k2
     this->expr_x = this->x + this->step / 2;
-    for(uint i = 0; i < this->expr_y_i.size(); i++){
-        this->expr_y_i.at(i) = this->y_i.at(i) + this->step / 2 * k1;
+    for(uint i = 0; i < this->y_i.size(); i++){
+        this->expr_y_i[i] = this->y_i[i] + this->step / 2 * k1;
     }
     T k2 = this->expression.value();
 
     // Calculate k3
-    for(uint i = 0; i < this->expr_y_i.size(); i++){
-        this->expr_y_i.at(i) = this->y_i.at(i) + this->step / 2 * k2;
+    for(uint i = 0; i < this->y_i.size(); i++){
+        this->expr_y_i[i] = this->y_i[i] + this->step / 2 * k2;
     }
     T k3 = this->expression.value();
 
     // Calculate k4
     this->expr_x = this->x + this->step;
-    for(uint i = 0; i < this->expr_y_i.size(); i++){
-        this->expr_y_i.at(i) = this->y_i.at(i) + this->step * k3;
+    for(uint i = 0; i < this->y_i.size(); i++){
+        this->expr_y_i[i] = this->y_i[i] + this->step * k3;
     }
     T k4 = this->expression.value();
 
     // Update y_i
     for(uint i = 0; i < newY_i.size(); i++){
-        this->y_i.at(i) = newY_i.at(i);
+        this->y_i[i] = newY_i[i];
     }
-    this->y_i.at(this->y_i.size() - 1) += this->step / 6 * (k1 + 2*k2 + 2*k3 + k4);
+    this->y_i[this->y_i.size() - 1] += this->step / 6 * (k1 + 2*k2 + 2*k3 + k4);
     // Update x
     this->x += this->step;
 
-    return this->y_i.at(0);
+    return this->y_i[0];
 }
 
 #endif // RK4_H
